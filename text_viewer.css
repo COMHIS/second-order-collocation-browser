@@ -1,0 +1,31 @@
+#image-window {
+	padding: 0px;
+	width:1000px;
+	height: 800px;
+	/*display: inline-block;*/
+	background-size: contain;
+	background-repeat: no-repeat;
+	float:left;
+	position:absolute;
+}
+.dot {
+	position:absolute;
+}
+.dot .dot-hiding{
+	visibility:hidden;
+	}
+	
+.dot:hover .dot-hiding {
+	visibility:visible;
+	} 
+
+#text-box {
+	display:inline-block;
+	position:absolute;
+	left: 1000px;
+	float:left;
+	}
+#link-box {
+	position:absolute;
+	top:800px;
+	}
