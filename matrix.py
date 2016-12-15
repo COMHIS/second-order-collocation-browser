@@ -110,7 +110,8 @@ df = pandas.DataFrame(df)
 df = df.transpose()
 df = df.fillna(0)
 df = df.div(df.sum(axis=0), axis=1)
-sizes = [data["collocations"][w] for w in df.index]
+tot = sum(data["collocations"].values()) 
+sizes = [data["collocations"][w]/tot*10000 for w in df.index]
 
 # MDS and plotting
 
