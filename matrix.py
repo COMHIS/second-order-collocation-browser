@@ -4,7 +4,7 @@ from sklearn.manifold import MDS
 import wget, random
 from sklearn.manifold import MDS
 import matplotlib.pyplot as plt
-import html
+import html_res
 
 
 def API_query(query_item, period, limit):
@@ -32,14 +32,15 @@ def open_saved_wordlist(query, P):
         IOError
         return build_new_wordlist(query, P)
 
-def build_new_wordlist(query, P):
+def build_new_wordlist(query, P, stopwords):
 
     # builds first order collocation data and random sample of 400 items of it as a separate wordlist
 
-    filename = wget.download(API_query(query, P, 1000))
+    filename = wget.download(API_query(query, P, 5000))
     with open(filename, "r", encoding="utf-8") as f:
         data = json.load(f)
     sample = random.sample(data["collocations"].keys(), 400)
+    sample = [x for x in sample if x not in stopwords]
     os.remove(filename)
     with open(query+"_".join(P)+".json", "w", encoding="utf-8") as f:
         json.dump((data, sample), f)
@@ -49,7 +50,7 @@ def download_vector(query, P):
 
     # downloads a single word collocation vector and saves it
 
-    fn = wget.download(API_query(query, P, 500))
+    fn = wget.download(API_query(query, P, 1000))
     
     with open(fn, "r", encoding="utf-8") as f:
         d = json.load(f)
@@ -68,6 +69,14 @@ def download_vector(query, P):
 Q = sys.argv[1]
 P = (sys.argv[2]+"0000", sys.argv[3]+"0000")
 DL = len(sys.argv) > 4 and sys.argv[4] == "download"
+try:
+    with open("stopwords.txt", "r", encoding="utf-8") as f:
+        stopwords = [x.replace("\n", "")  for x in f]
+except:
+    IOError
+    stopwords = []
+
+
 col_path = "collocations_"+"_".join(P)+"/"
 
 if not os.path.isdir(col_path):
@@ -85,11 +94,13 @@ df = {}
 run = 0
 
 if DL:
-    data, wordlist = build_new_wordlist(Q, P)
+    data, wordlist = build_new_wordlist(Q, P, stopwords)
 else:
     data, wordlist = open_saved_wordlist(Q, P)
     
 # building the second order collocation matrix
+
+wordlist = [x for x in wordlist if x not in stopwords]
 
 for row in wordlist:
     if len(row) > 2:
@@ -110,14 +121,14 @@ df = pandas.DataFrame(df)
 df = df.transpose()
 df = df.fillna(0)
 df = df.div(df.sum(axis=0), axis=1)
-tot = sum(data["collocations"].values()) 
+tot = sum([data["collocations"][x] for x in wordlist])
 sizes = [data["collocations"][w]/tot*10000 for w in df.index]
 
 # MDS and plotting
 
 mds = MDS()
 pos = mds.fit(df).embedding_
-scale = [-3.0, 3.0, -3.0, 3.0]
+scale = [-2.0, 2.0, -2.0, 2.0]
 plt.axis(scale)
 plt.scatter(pos[:, 0], pos[:, 1], s=sizes[:], c="white")
 imagepath = "images/"+"_".join([Q, str(P[0]), str(P[1])])
@@ -125,4 +136,5 @@ plt.savefig("html/"+imagepath)
 
 # build interactive HTML browsing file
 
-html.get_HTML(imagepath, 1750, pos, list(df.index), list(df.index), scale, sizes)
+with open("html/"+col_path.replace("/", ".html"), "w", encoding="utf-8") as f:
+    f.write(html_res.get_HTML(imagepath, int(P[0].replace("0000", "")), pos, list(df.index), list(df.index), scale, sizes))
